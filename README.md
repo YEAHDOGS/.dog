@@ -80,6 +80,10 @@ python3 test_dog.py   # 16 tests: round-trips, expansions, errors, byte savings
 SPEC.md            the format specification (DOG/1)
 README.md          this file
 dog.py             reference parser (JSON out)
+dog.js             JS parser, node + browser (zero-dep)
+dog.go             Go parser, single-file zero-dep (stdlib only)
+go.mod             Go module (no dependencies)
+dog_corpus_test.go Go conformance runner: 39/39 corpus cases + dog.py agreement
 test_dog.py        test suite
 examples/
   minimal.json        sample data as pretty JSON (692 bytes)

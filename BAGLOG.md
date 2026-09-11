@@ -16,7 +16,7 @@ the corpus — this is how we keep implementations from diverging.
 |---|---|---|---|
 | Python | done (reference) | Linux/macOS/Windows | `dog.py`, zero-dep, 16 tests green |
 | JavaScript/TypeScript | next | node, browser | Castle apps are Svelte/TS — highest leverage |
-| Go | queued | Linux/macOS/Windows, servers | |
+| Go | done (2026-09-11) | Linux/macOS/Windows, servers | `dog.go`, single-file zero-dep (`package main`, stdlib only), CLI mirrors dog.py; Go 1.27.1 toolchain (~/toolchains/go); `go test -run TestCorpus` → 39/39 green incl. truncated-directive hard errors + dog.py agreement on 37 |
 | Rust | queued | everywhere, incl. embedded | candidate for the canonical fast parser |
 | Kotlin | queued | Android | Chat Now / Castle Android read .dog configs |
 | Swift | queued | iOS | |
@@ -103,6 +103,21 @@ for the playbook.
 
 ## Log
 
+- **2026-09-11 ~04:55** — Parser fleet step 3 done: `dog.go` (single-file,
+  zero-dep, `package main` on stdlib only — `Parse(text)` library API plus a
+  `dog.py`-style CLI: `go run dog.go file.dog`). Mirrors dog.js behavior,
+  including the hard rule: REJECTS truncated directive names (`l:`, `di:`)
+  as hard errors — does NOT copy dog.py's silent leniency (pending his D1
+  ruling). `go.mod` added (module `dog`, no dependencies) so `go vet`/`go test`
+  run clean. Conformance: `go test -run TestCorpus` →
+  **39/39 green** — every corpus case vs `.expected.json`/`.error`, plus
+  dog.py agreement on all 37 non-deviation cases (the 2 truncated-directive
+  cases keep their documented `.known-deviation` vs dog.py). dog.py's own
+  16-test suite still passes untouched; node `tests/run-corpus.js` still
+  39/39. Toolchain: **Go 1.27.1** (`~/toolchains/go`, PATH wired in
+  `~/.bashrc`). Go CLI output verified byte-identical to dog.py on
+  `examples/minimal.dog` modulo JSON key order (Go sorts map keys;
+  semantically equal).
 - **2026-09-11 ~04:00** — Parser fleet step 2 done: `dog.js` (single-file,
   zero-dep, node + browser via `typeof module` guard + `globalThis.dog`)
   mirrors dog.py behavior. Conformance corpus landed:
