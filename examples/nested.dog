@@ -1,0 +1,16 @@
+.dog/1.0
+lang: dog
+dict: n=name
+rep: ~=https://dogs.example
+
+server:
+  n: castle
+  endpoints:
+    - ~/health
+    - ~/api/v1
+  limits:
+    cpu: 4
+    mem: 16GB
+  note: |
+    Runs behind the modem.
+    No cookies. No banners.
