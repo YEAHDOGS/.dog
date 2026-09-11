@@ -82,8 +82,15 @@ README.md          this file
 dog.py             reference parser (JSON out)
 dog.js             JS parser, node + browser (zero-dep)
 dog.go             Go parser, single-file zero-dep (stdlib only)
+dog.rs             Rust parser, single-file zero-dep (stdlib only)
+dog.kt             Kotlin parser, single-file zero-dep (stdlib only)
+dog.c              C parser, single-file zero-dep (stdlib only: stdio/stdlib/string/ctype)
 go.mod             Go module (no dependencies)
 dog_corpus_test.go Go conformance runner: 39/39 corpus cases + dog.py agreement
+tests/run-corpus.js   JS conformance runner: 39/39 corpus cases + dog.py agreement
+tests/run_corpus.rs   Rust conformance runner: 39/39 corpus cases + dog.py agreement
+tests/run_corpus.kt   Kotlin conformance runner: 39/39 corpus cases + dog.py agreement
+tests/run-corpus.sh   C conformance runner: 39/39 corpus cases + dog.py agreement
 test_dog.py        test suite
 examples/
   minimal.json        sample data as pretty JSON (692 bytes)

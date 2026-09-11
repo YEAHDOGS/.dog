@@ -22,7 +22,7 @@ the corpus — this is how we keep implementations from diverging.
 | Swift | queued | iOS | |
 | Java | queued | Android, servers | |
 | C# | queued | Windows, .NET | Phoenix tooling is PowerShell/.NET-adjacent |
-| C | queued | embedded, Castle OS | |
+| C | done (2026-09-11) | embedded, Castle OS | `dog.c`, single-file zero-dep (stdlib only: stdio/stdlib/string/ctype), `dog_parse()` library API + `dog.py`-style CLI (`gcc dog.c -o dog && ./dog file.dog`, dog.py-style pretty JSON); conformance runner `tests/run-corpus.sh` (bash; compiles `-Wall -Wextra`, zero warnings tolerated, per-case vs `.expected.json`/`.error` + dog.py agreement) → **39/39 green** incl. truncated-directive hard errors + dog.py agreement on 37; rejects `l:`/`di:` like dog.js/dog.go/dog.rs/dog.kt (D1 still pending his call); gcc 13.3.0, ASan/UBSan clean over the full corpus |
 | Dart, Ruby, PHP | queued | | on demand |
 
 Proposed build order: JS/TS → Go → Rust → Kotlin → the rest, unless the
@@ -103,6 +103,25 @@ for the playbook.
 
 ## Log
 
+- **2026-09-11 ~06:00** — Parser fleet step 6 done: `dog.c` (single-file,
+  zero-dep, stdlib only — `dog_parse(text, &err)` library API plus a
+  `dog.py`-style CLI: `gcc -Wall -Wextra -O2 -std=c11 dog.c -o dog &&
+  ./dog file.dog`, prints dog.py-style pretty JSON). Mirrors
+  dog.js/dog.go/dog.rs/dog.kt behavior, including the hard rule: REJECTS
+  truncated directive names (`l:`, `di:`) as hard errors — does NOT copy
+  dog.py's silent leniency (pending his D1 ruling). Conformance runner
+  `tests/run-corpus.sh` (bash; compiles with `-Wall -Wextra` and fails on
+  any warning; per-case check vs `.expected.json`/`.error` plus a python3
+  dog.py-agreement driver) → **39/39 green** — every corpus case, plus
+  dog.py agreement on all 37 non-deviation cases (the 2 truncated-directive
+  cases keep their documented `.known-deviation` vs dog.py). dog.py's own
+  16-test suite still passes untouched; node `tests/run-corpus.js` still
+  39/39. C CLI output verified semantically equal to dog.py on all five
+  `examples/*.dog`. Extra hardening: ASan+UBSan build run over the full
+  corpus — zero errors. Implementation notes: integers canonicalized as
+  literal text (arbitrary precision preserved, `007` → `7`, `-0` → `0`);
+  floats use shortest-round-trip Python-repr-style formatting (`1000.0`,
+  `-0.0015`); hand-written JSON and XML parsers, no deps.
 - **2026-09-11 ~06:10** — Parser fleet step 5 done: `dog.kt` (single-file,
   zero-dep, stdlib only — `fun parse(text: String): Any?` library API plus a
   `dog.py`-style CLI: `kotlinc dog.kt -include-runtime -d dog.jar &&
