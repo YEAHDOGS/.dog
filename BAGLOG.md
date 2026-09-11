@@ -48,17 +48,65 @@ founder reorders.
 - **D3 — Directive set growth.** New directives (`nest:`, `escape:`, …)
   need a uniqueness audit against all existing prefixes before acceptance.
 
-## Integration — ideas (research running)
+## Integration — adoption playbook (research landed 2026-09-11)
 
-- Dogfood it: .dog as the config/data format across Castle; Chains
-  metadata envelopes.
-- Adoption playbook research in flight — will land here as the sequenced
-  plan (killer vector, conformance strategy, graveyard lessons).
+**Headline finding:** every format that won was carried by a flagship
+distribution vector, not spec quality. Standards and RFCs arrived *after*
+victory to describe reality (JSON: ECMA-404/RFC 8259 years later; YAML's
+`application/yaml` MIME type came 23 years late) — never to cause it.
+
+**Vectors, ranked by leverage:**
+1. Dogfood inside a flagship product — highest leverage, by far.
+2. Single-file zero-dependency parsers, one per language.
+3. Package-manager distribution (npm, PyPI, crates.io, Go modules).
+4. One-page spec site + online playground.
+5. CLI converters/validators (bidirectional native↔JSON — the downgrade
+   path; JSON5's lesson: "almost, but not quite, JSON" without a downgrade
+   path fragments tooling).
+6. MIME type + file extension registration — register day one, expect zero
+   lift from it.
+7. Language stdlib inclusion — lagging indicator, high politics cost.
+8. Editor support — hygiene only.
+
+**Sequenced playbook:**
+- **Week 1:** zero-friction bundle — zero-dep parsers on npm/PyPI/
+  crates.io/Go modules + one-page spec + playground + bidirectional CLI.
+- **Month 1:** freeze the grammar; ship a y_/n_/i_ conformance corpus
+  pinned by commit (copy JSONTestSuite/toml-test discipline: missing
+  corpus = test failure).
+- **Months 2–6:** win ONE flagship — write the integration PR yourself
+  (the Cargo/MessagePack pattern).
+- **Ongoing:** tooling ring — VS Code grammar, validator/linter,
+  flawless converter.
+- **Late:** MIME paperwork, ABNF, stdlib bids — documentation, not strategy.
+
+**Single highest-leverage first move:** ship the format inside one product
+the target users already run, with drop-in parsers on every package manager
+day one. → For us, that product is **Castle**: .dog as Castle's config/data
+format, Chains metadata envelopes. We own the flagship.
+
+**Graveyard lessons:** nothing died of bad syntax. They died of no flagship
+(SDLang), ecosystem coupling (RON→Rust-only, HOCON→JVM-only), dead spec
+presence, or near-compatibility without an interop story.
+
+**Conformance discipline to copy:** format-owned language-agnostic corpus
+with accept/reject/undefined verdicts; pin corpus by commit; assert the
+corpus census in CI; known deviations pinned with written reasons shared
+across runtimes. Divergence costs are real (y's two engines disagree on
+29 cases).
+
+**Open/unverified from the research:** no substantive sources found for
+JSONH or Amazon Ion; Chromium's JSON5 use unconfirmed. Not load-bearing
+for the playbook.
 
 ---
 
 ## Log
 
+- **2026-09-11 ~02:51** — Adoption playbook research landed in the bag
+  log. Verdict: flagship distribution beats spec quality; our flagship is
+  Castle. Week-1 bundle (parsers on every package manager + one-pager +
+  playground + bidirectional CLI) is the first move.
 - **2026-09-11 ~02:50** — Bag log started. Parser fleet matrix opened;
   conformance-corpus-first discipline adopted. D1 (abbreviations) and D2
   (leniency principle) proposed; D1 needs founder sign-off (touches
