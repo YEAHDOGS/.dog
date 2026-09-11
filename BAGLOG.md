@@ -17,7 +17,7 @@ the corpus — this is how we keep implementations from diverging.
 | Python | done (reference) | Linux/macOS/Windows | `dog.py`, zero-dep, 16 tests green |
 | JavaScript/TypeScript | next | node, browser | Castle apps are Svelte/TS — highest leverage |
 | Go | done (2026-09-11) | Linux/macOS/Windows, servers | `dog.go`, single-file zero-dep (`package main`, stdlib only), CLI mirrors dog.py; Go 1.27.1 toolchain (~/toolchains/go); `go test -run TestCorpus` → 39/39 green incl. truncated-directive hard errors + dog.py agreement on 37 |
-| Rust | queued | everywhere, incl. embedded | candidate for the canonical fast parser |
+| Rust | done (2026-09-11) | everywhere, incl. embedded | `dog.rs`, single-file zero-dep (stdlib only), `parse()` library API + `dog.py`-style CLI (`rustc --edition 2021 -O dog.rs`); conformance runner `tests/run_corpus.rs` (`rustc --test`, includes `../dog.rs` as a module) → **39/39 green** incl. truncated-directive hard errors + dog.py agreement on 37; rejects `l:`/`di:` like dog.js/dog.go (D1 still pending his call); rustc 1.98.1, zero warnings |
 | Kotlin | queued | Android | Chat Now / Castle Android read .dog configs |
 | Swift | queued | iOS | |
 | Java | queued | Android, servers | |
@@ -103,6 +103,24 @@ for the playbook.
 
 ## Log
 
+- **2026-09-11 ~05:40** — Parser fleet step 4 done: `dog.rs` (single-file,
+  zero-dep, stdlib only — `pub fn parse(text) -> Result<Value, DogError>`
+  library API plus a `dog.py`-style CLI: `rustc --edition 2021 -O dog.rs
+  -o dog && ./dog file.dog`). Mirrors dog.go/dog.js behavior, including the
+  hard rule: REJECTS truncated directive names (`l:`, `di:`) as hard errors
+  — does NOT copy dog.py's silent leniency (pending his D1 ruling).
+  Conformance runner `tests/run_corpus.rs` (compiled with `rustc --test`,
+  pulls in `../dog.rs` as a module — no Cargo project, no deps) →
+  **39/39 green** — every corpus case vs `.expected.json`/`.error`, plus
+  dog.py agreement on all 37 non-deviation cases (the 2 truncated-directive
+  cases keep their documented `.known-deviation` vs dog.py). dog.py's own
+  16-test suite still passes untouched; node `tests/run-corpus.js` still
+  39/39. Rust CLI output verified semantically equal to dog.py on
+  examples/{minimal,nested,yaml-variation}.dog. Toolchain: **rustc 1.98.1**
+  (`~/.cargo`), zero warnings on both binary and `--test` builds. One real
+  bug caught by the corpus during the port (dropped `@attr` keys when an
+  element had children — `xml_value` only emitted attributes in the
+  leaf branch); fixed, now matches dog.go exactly.
 - **2026-09-11 ~04:55** — Parser fleet step 3 done: `dog.go` (single-file,
   zero-dep, `package main` on stdlib only — `Parse(text)` library API plus a
   `dog.py`-style CLI: `go run dog.go file.dog`). Mirrors dog.js behavior,
