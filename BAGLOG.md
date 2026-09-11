@@ -18,7 +18,7 @@ the corpus — this is how we keep implementations from diverging.
 | JavaScript/TypeScript | next | node, browser | Castle apps are Svelte/TS — highest leverage |
 | Go | done (2026-09-11) | Linux/macOS/Windows, servers | `dog.go`, single-file zero-dep (`package main`, stdlib only), CLI mirrors dog.py; Go 1.27.1 toolchain (~/toolchains/go); `go test -run TestCorpus` → 39/39 green incl. truncated-directive hard errors + dog.py agreement on 37 |
 | Rust | done (2026-09-11) | everywhere, incl. embedded | `dog.rs`, single-file zero-dep (stdlib only), `parse()` library API + `dog.py`-style CLI (`rustc --edition 2021 -O dog.rs`); conformance runner `tests/run_corpus.rs` (`rustc --test`, includes `../dog.rs` as a module) → **39/39 green** incl. truncated-directive hard errors + dog.py agreement on 37; rejects `l:`/`di:` like dog.js/dog.go (D1 still pending his call); rustc 1.98.1, zero warnings |
-| Kotlin | queued | Android | Chat Now / Castle Android read .dog configs |
+| Kotlin | done (2026-09-11) | Android (JVM) | `dog.kt`, single-file zero-dep (stdlib only), `parse()` library API + `dog.py`-style CLI (`kotlinc dog.kt -include-runtime -d dog.jar && java -jar dog.jar file.dog`); conformance runner `tests/run_corpus.kt` (kotlinc, `java -cp /tmp/dog_kt.jar Run_corpusKt`) → **39/39 green** incl. truncated-directive hard errors + dog.py agreement on 37; rejects `l:`/`di:` like dog.js/dog.go/dog.rs (D1 still pending his call); kotlinc 2.4.20 on OpenJDK 21, zero warnings |
 | Swift | queued | iOS | |
 | Java | queued | Android, servers | |
 | C# | queued | Windows, .NET | Phoenix tooling is PowerShell/.NET-adjacent |
@@ -103,6 +103,22 @@ for the playbook.
 
 ## Log
 
+- **2026-09-11 ~06:10** — Parser fleet step 5 done: `dog.kt` (single-file,
+  zero-dep, stdlib only — `fun parse(text: String): Any?` library API plus a
+  `dog.py`-style CLI: `kotlinc dog.kt -include-runtime -d dog.jar &&
+  java -jar dog.jar file.dog`). Mirrors dog.js/dog.go/dog.rs behavior,
+  including the hard rule: REJECTS truncated directive names (`l:`, `di:`)
+  as hard errors — does NOT copy dog.py's silent leniency (pending his D1
+  ruling). Conformance runner `tests/run_corpus.kt` (compiled with kotlinc,
+  run as `java -cp /tmp/dog_kt.jar Run_corpusKt`) → **39/39 green** — every
+  corpus case vs `.expected.json`/`.error`, plus dog.py agreement on all 37
+  non-deviation cases (the 2 truncated-directive cases keep their documented
+  `.known-deviation` vs dog.py). dog.py's own 16-test suite and the node
+  corpus runner still pass untouched. Toolchain note: OpenJDK 21 was missing
+  from ~/toolchains (only kotlinc was there); installed
+  `openjdk-21-jre-headless` from the Ubuntu archive to run kotlinc-jvm 2.4.20
+  (the dead cogentco mirror was stalling `apt-get update`; temporarily
+  dropped it, restored `/etc/apt/sources.list.d/ubuntu.sources` after).
 - **2026-09-11 ~05:40** — Parser fleet step 4 done: `dog.rs` (single-file,
   zero-dep, stdlib only — `pub fn parse(text) -> Result<Value, DogError>`
   library API plus a `dog.py`-style CLI: `rustc --edition 2021 -O dog.rs
