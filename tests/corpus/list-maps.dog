@@ -1,0 +1,10 @@
+.dog/1.0
+
+- Ava
+- Ben
+- name: Cy
+  age: 41
+-
+  nested: deep
+- key:
+    deep: 1

@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Ava Reyes",
+    "email": "ava.reyes@example.com",
+    "role": "admin",
+    "active": true
+  },
+  {
+    "name": "Ben Okafor",
+    "email": "ben.okafor@example.com",
+    "role": "member",
+    "active": true
+  },
+  {
+    "name": "Cy Lindqvist",
+    "email": "cy.lindqvist@example.com",
+    "role": "member",
+    "active": true
+  },
+  {
+    "name": "Dee Park",
+    "email": "dee.park@example.com",
+    "role": "member",
+    "active": false
+  },
+  {
+    "name": "Eli Vance",
+    "email": "eli.vance@example.com",
+    "role": "moderator",
+    "active": true
+  },
+  {
+    "name": "Fay Hassan",
+    "email": "fay.hassan@example.com",
+    "role": "member",
+    "active": true
+  }
+]

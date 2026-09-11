@@ -1,0 +1,4 @@
+.dog/1.0
+lang: xml
+
+<tag a="1">hello</tag>

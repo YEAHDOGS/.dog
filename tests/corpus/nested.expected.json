@@ -1,0 +1,14 @@
+{
+  "server": {
+    "name": "castle",
+    "endpoints": [
+      "https://dogs.example/health",
+      "https://dogs.example/api/v1"
+    ],
+    "limits": {
+      "cpu": 4,
+      "mem": "16GB"
+    },
+    "note": "Runs behind the modem.\nNo cookies. No banners."
+  }
+}

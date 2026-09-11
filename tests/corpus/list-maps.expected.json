@@ -1,0 +1,16 @@
+[
+  "Ava",
+  "Ben",
+  {
+    "name": "Cy",
+    "age": 41
+  },
+  {
+    "nested": "deep"
+  },
+  {
+    "key": {
+      "deep": 1
+    }
+  }
+]

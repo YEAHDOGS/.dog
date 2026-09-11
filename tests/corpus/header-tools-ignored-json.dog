@@ -1,0 +1,6 @@
+.dog/1.0
+lang: json
+dict: n=name
+rep: ~=X
+
+{"n": "~", "a": 1}

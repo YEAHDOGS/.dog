@@ -1,0 +1,4 @@
+.dog/1.0
+lang: xml
+
+<user active="true"><name>Ava</name></user>

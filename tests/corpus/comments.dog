@@ -1,0 +1,7 @@
+.dog/1.0
+# header comment
+lang: dog
+
+# body comment
+k: 1
+  # indented comment

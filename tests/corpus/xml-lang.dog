@@ -1,0 +1,35 @@
+.dog/1.0
+lang: xml
+
+<users>
+  <user active="true">
+    <name>Ava Reyes</name>
+    <email>ava.reyes@example.com</email>
+    <role>admin</role>
+  </user>
+  <user active="true">
+    <name>Ben Okafor</name>
+    <email>ben.okafor@example.com</email>
+    <role>member</role>
+  </user>
+  <user active="true">
+    <name>Cy Lindqvist</name>
+    <email>cy.lindqvist@example.com</email>
+    <role>member</role>
+  </user>
+  <user active="false">
+    <name>Dee Park</name>
+    <email>dee.park@example.com</email>
+    <role>member</role>
+  </user>
+  <user active="true">
+    <name>Eli Vance</name>
+    <email>eli.vance@example.com</email>
+    <role>moderator</role>
+  </user>
+  <user active="true">
+    <name>Fay Hassan</name>
+    <email>fay.hassan@example.com</email>
+    <role>member</role>
+  </user>
+</users>

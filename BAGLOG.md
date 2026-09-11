@@ -103,6 +103,21 @@ for the playbook.
 
 ## Log
 
+- **2026-09-11 ~04:00** — Parser fleet step 2 done: `dog.js` (single-file,
+  zero-dep, node + browser via `typeof module` guard + `globalThis.dog`)
+  mirrors dog.py behavior. Conformance corpus landed:
+  `tests/corpus/` — 39 cases (29 valid incl. json-as-valid-.dog, all four
+  lang presets, dict/rep/keys/sep/indent/quote, nesting, block scalars,
+  rows, empty docs, byte-savings fixtures; 10 error cases) each with a
+  `.dog` input + `.expected.json` or `.error` expectation.
+  `node tests/run-corpus.js` → **39/39 green**, dog.py agreement checked
+  per case. One honest deviation, documented in-corpus
+  (`.known-deviation` files): dog.js REJECTS truncated directive names
+  (`l:`, `di:`) as hard errors because abbreviations (D1) are not in the
+  spec — dog.py silently ignores them as unknown directives, which
+  mis-resolves (e.g. `l: json` parses a JSON body as native dog).
+  Reconcile dog.py once the founder rules on D1. dog.py's own 16-test
+  suite still passes untouched.
 - **2026-09-11 ~02:51** — Adoption playbook research landed in the bag
   log. Verdict: flagship distribution beats spec quality; our flagship is
   Castle. Week-1 bundle (parsers on every package manager + one-pager +

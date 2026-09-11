@@ -1,0 +1,15 @@
+.dog/1.0
+
+s1: 42
+s2: 3.5
+s3: true
+s4: null
+s5: "42"
+s6: -7
+s7: 1e3
+s8: " padded "
+s9:
+s10: ""
+s11: TRUE
+s12: .5
+s13: 16GB
