@@ -1,4 +1,4 @@
-# .dog/2.0 — Format Specification (DOG/2)
+# .dog/1.0 — Format Specification (DOG/1)
 
 `.dog` is a minimal plain-text data format. A short **header** declares the
 syntax — every brace, quote, hyphen, and separator is a header parameter —
@@ -21,7 +21,7 @@ Design goals, in order:
 ## 1. Document layout
 
 ```
-.dog/2.0
+.dog/1.0
 map-open: {
 map-close: }
 seq-open: [
@@ -33,7 +33,7 @@ bare: none
 {"name": "Ava", "age": 29}
 ```
 
-- **Line 1** is the magic: exactly `.dog/2.0`. Anything else is not a .dog
+- **Line 1** is the magic: exactly `.dog/1.0`. Anything else is not a .dog
   file.
 - **Header**: directive lines, one per line, `name: value`. Ends at the
   first blank line (a file that ends without a blank line is accepted
@@ -46,7 +46,7 @@ bare: none
 - A repeated directive: the last occurrence wins.
 - **Unknown directives are ignored** — this is how the format grows without
   breaking old readers. There is no `lang:` directive: a `lang:` line in a
-  `.dog/2.0` file is unknown and ignored (see §7 Migration).
+  `.dog/1.0` file is unknown and ignored (see §7).
 
 ## 2. Syntax parameters
 
@@ -124,7 +124,7 @@ bare: none
    are kept as-is.
 2. `rep:` expands scalar values and keys, longest token first.
 3. `rep:` pairs split on whitespace, so an expansion cannot contain a
-   literal space in v2 — use `%20` or choose tokens accordingly.
+   literal space in v1 — use `%20` or choose tokens accordingly.
 
 ## 3. Configurations: JSON and YAML are parameter bundles
 
@@ -132,7 +132,7 @@ bare: none
 prepending this header and changing zero body bytes:
 
 ```
-.dog/2.0
+.dog/1.0
 map-open: {
 map-close: }
 seq-open: [
@@ -146,13 +146,13 @@ bare: none
 scalars). Indent mode is the default, so no open tokens are needed:
 
 ```
-.dog/2.0
+.dog/1.0
 seq-item: -
 key-sep: :
 bare: strings
 ```
 
-Anchors, flow styles, and tags are out of scope for v2.
+Anchors, flow styles, and tags are out of scope for now.
 
 **Native .dog.** The header is just the magic line: indent mode, `- `
 items, `:` key separator, bare strings allowed — plus `dict:`/`rep:`/
@@ -161,7 +161,7 @@ items, `:` key separator, bare strings allowed — plus `dict:`/`rep:`/
 **XML.** Named elements fall out of the tag parameters — no special case:
 
 ```
-.dog/2.0
+.dog/1.0
 tag-open: <
 tag-close: >
 tag-end: </
@@ -209,16 +209,13 @@ bare scalar inside a map in indent mode, `bare: none` violation, row
 field-count mismatch, `keys:` with an explicit `entry-sep`, and malformed
 bodies. It MUST NOT silently reinterpret.
 
-## 7. Versioning and migration
+## 7. Versioning
 
-This is DOG/2, magic `.dog/2.0`. DOG/1 (`lang:`-based) files are **not**
-valid DOG/2: `lang:` is an unknown directive and is ignored, so a v1 body
-would be parsed as native .dog and fail. Migration is mechanical:
+This is v1, magic `.dog/1.0` — the first and only version. Nothing has
+shipped before it, so there is nothing to migrate from: earlier drafts
+(`!dog 1`, `lang:`-based sketches) were never released and are not
+recognized. A `lang:` line in a v1 file is an unknown directive and is
+ignored.
 
-- `lang: json` → the JSON bundle (§3)
-- `lang: yaml` → the YAML bundle (§3)
-- `lang: xml`  → the tag bundle (§3)
-- `lang: dog`  → delete the line
-
-Unknown directives are ignored, so additive header tools never break v2
-readers. A future breaking change bumps the magic (`.dog/3.0`).
+Unknown directives are ignored, so additive header tools never break v1
+readers. A future breaking change bumps the magic (`.dog/2.0`).

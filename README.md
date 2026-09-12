@@ -6,7 +6,7 @@ body is your data. Two promises:
 
 1. **JSON is just .dog with different settings.** No `lang:` shortcut, no
    special cases: the header parameters alone make any JSON file valid .dog.
-   Same for YAML.
+   Same for YAML. Same for XML.
 2. **Native .dog cuts the bytes dramatically** — smaller than minified JSON,
    while staying human-readable.
 
@@ -17,7 +17,7 @@ body is your data. Two promises:
 byte-identical JSON, the 7-line header is the entire format declaration:
 
 ```
-.dog/2.0
+.dog/1.0
 map-open: {
 map-close: }
 seq-open: [
@@ -49,7 +49,7 @@ configuration.)
 The same data, rewritten in native .dog with the header tools:
 
 ```
-.dog/2.0
+.dog/1.0
 dict: n=name e=email r=role a=active
 rep: ~=@example.com
 keys: n e r a
@@ -91,7 +91,7 @@ python3 test_dog.py   # 16 tests: round-trips, expansions, errors, byte savings
 ## Layout
 
 ```
-SPEC.md            the format specification (DOG/2)
+SPEC.md            the format specification (v1)
 README.md          this file
 dog.py             reference parser (JSON out)
 dog.js             JS parser, node + browser (zero-dep)
@@ -109,10 +109,10 @@ test_dog.py        test suite
 examples/
   minimal.json        sample data as pretty JSON (692 bytes)
   minimal.dog         same data, native dog (391 bytes)
-  user.dog            the same record, native .dog config (DOG/2)
+  user.dog            the same record, native .dog config (v1)
   user-json.dog       the same record, JSON bundle config — body is byte-identical JSON
   user-yaml.dog       the same record, YAML bundle config
-  nested.dog          nesting, lists, block scalars, rep in action (DOG/1 — needs migration)
+  nested.dog          nesting, lists, block scalars, rep in action
 ```
 
 Spec: [SPEC.md](SPEC.md).

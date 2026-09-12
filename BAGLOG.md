@@ -248,3 +248,11 @@ for the playbook.
   directive: JSON, XML, YAML all expressible as .dog via header; header
   tools as needed; README must prove header-only JSON validity and the
   minimal-format savings.
+
+## Correction: there is no v2 (2026-09-11, same night)
+- Brandon killed the versioning: nothing has shipped, so there is no "DOG/2".
+  The spec is v1, magic `.dog/1.0` — the first and only version. Earlier
+  "DOG/2" references in this log meant "the current draft", not a release.
+- §7 rewritten: no migration section, no migration fiction. Earlier drafts
+  (`!dog 1`, `lang:` sketches) never shipped and are not recognized.
+- Parsers target the v1 spec. Nothing is set in stone — greenfield.
