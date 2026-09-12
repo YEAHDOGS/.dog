@@ -9,7 +9,7 @@ Design goals, in order:
 1. **JSON is just .dog with different settings.** There is no `lang:`
    shortcut and no special case: the generic header parameters are
    expressive enough that a JSON document is valid .dog purely through
-   header configuration. Same for YAML.
+   header configuration. Same for YAML. Same for XML.
 2. **Minimal when it matters.** The native configuration plus header tools
    (key dictionaries, repeated-string avoidance, positional rows) cuts
    typical JSON payloads roughly in half — smaller than minified JSON while
@@ -68,6 +68,14 @@ bare: none
 | `rep:`      | —          | Repeated-string avoidance: `token=expansion` pairs, space-separated |
 | `keys:`     | —          | Positional key order: every body line is a `sep`-separated row of bare values |
 | `sep:`      | `\|`       | Field separator for `keys:` rows |
+| `tag-open:` | (unset)    | Token opening a named element, e.g. `<` |
+| `tag-close:`| (unset)    | Token closing an element's open tag, e.g. `>` |
+| `tag-end:`  | (unset)    | Token opening an element's close tag, e.g. `</` |
+| `attr-eq:`  | (unset)    | Token between an attribute name and its value, e.g. `=` |
+| `attr-key:` | `@`        | Key holding an element's attributes |
+| `text-key:` | `#text`    | Key holding an element's text when it also has children/attributes |
+| `empty-tag:`| (unset)    | Self-closing element suffix, e.g. `/>` |
+| `dup-keys:` | `error`    | `array`: repeated sibling keys collect into a sequence; `error`: a repeated key is a document error |
 
 ### Grammar
 
@@ -79,8 +87,16 @@ bare: none
   is by deeper indentation (readers accept any consistent deeper indent;
   tabs are forbidden; mixed levels are an error), and sequence items are
   prefixed with the `seq-item` marker.
-- Each construct follows its own setting: braced maps containing
-  indent-mode sequences (or vice versa) in one document is legal.
+- **Tag mode** — when `tag-open` is set, elements are named
+  constructs: `tag-open name (attr attr-eq quoted-value)* tag-close
+  content tag-end name tag-close`. Attributes collect under `attr-key`
+  (default `@`). An element whose content is only text denotes that
+  scalar directly; an element with children denotes a map of them; an
+  element with both text and children is a map with its text under
+  `text-key`. `empty-tag` (`<name/>`) denotes null. Repeated sibling
+  element names collect into a sequence iff `dup-keys: array`, otherwise
+  a repeated key is a document error. Tag mode is not XML-specific:
+  BBCode (`[b]bold[/b]`) is the same bundle with `[`, `]`, `[/`.
 - A map entry is `key key-sep value`. Keys are quoted strings or bare
   tokens (per `bare:`); `dict:` aliases expand them. A value is a quoted
   string, a bare scalar, a nested map/sequence, or a block scalar: `|`
@@ -142,6 +158,24 @@ Anchors, flow styles, and tags are out of scope for v2.
 items, `:` key separator, bare strings allowed — plus `dict:`/`rep:`/
 `keys:` where the bytes matter.
 
+**XML.** Named elements fall out of the tag parameters — no special case:
+
+```
+.dog/2.0
+tag-open: <
+tag-close: >
+tag-end: </
+attr-eq: =
+quote: "
+empty-tag: />
+dup-keys: array
+```
+
+`examples/user-xml.dog` carries the same record as §4's trio: attributes
+land under `@`, repeated `<tag>` siblings collect into an array because
+`dup-keys: array`, and a bare `29` is still the number `29` — XML's
+syntax, .dog's type discipline, none of XML's stringly-typed footguns.
+
 Syntax is configurable; the data model and type discipline are invariant
 across every configuration: a bare `NO` is the string `"NO"` in ALL of
 them (R2.1 — YAML's Norway problem stays dead even in YAML syntax),
@@ -151,9 +185,14 @@ enforced.
 
 ## 4. Three configurations, one value
 
-`examples/user.dog` (native), `examples/user-json.dog` (JSON bundle), and
-`examples/user-yaml.dog` (YAML bundle) carry identical data. A conforming
-parser MUST produce the identical JSON-equivalent value for all three.
+`examples/user.dog` (native), `examples/user-json.dog` (JSON bundle),
+and `examples/user-yaml.dog` (YAML bundle) carry identical data: a
+conforming parser MUST produce the identical JSON-equivalent value for
+all three. `examples/user-xml.dog` carries the same record through the
+tag-mode mapping, which is deterministic but shape-honest: attributes
+live under `attr-key`, repeated siblings collect under their tag name,
+and the single root element wraps the document. Any XML document is
+expressible; the mapping never silently reinterprets.
 
 ## 5. Data model
 
@@ -176,15 +215,10 @@ This is DOG/2, magic `.dog/2.0`. DOG/1 (`lang:`-based) files are **not**
 valid DOG/2: `lang:` is an unknown directive and is ignored, so a v1 body
 would be parsed as native .dog and fail. Migration is mechanical:
 
-- `lang: json` → the 7-line JSON bundle (§3)
-- `lang: yaml` → the 3-line YAML bundle (§3)
+- `lang: json` → the JSON bundle (§3)
+- `lang: yaml` → the YAML bundle (§3)
+- `lang: xml`  → the tag bundle (§3)
 - `lang: dog`  → delete the line
-- `lang: xml`  → no bundle exists. XML is not expressible as delimiter
-  parameters (attributes, the `@attr`/`#text` mapping, and
-  repeated-sibling→array are data-model mappings, not syntax). **Open
-  question for the founder:** drop XML from the spec, or keep it as a
-  documented body mapping outside the parameter system. Recommendation:
-  drop it — R3.2, no sprawl.
 
 Unknown directives are ignored, so additive header tools never break v2
 readers. A future breaking change bumps the magic (`.dog/3.0`).

@@ -1,0 +1,22 @@
+.dog/2.0
+tag-open: <
+tag-close: >
+tag-end: </
+attr-eq: =
+quote: "
+empty-tag: />
+dup-keys: array
+
+<person id="123">
+<name>Ava Reyes</name>
+<age>29</age>
+<admin>true</admin>
+<tags>
+<tag>early</tag>
+<tag>vinyl</tag>
+</tags>
+<address>
+<city>Tulsa</city>
+<zip>74103</zip>
+</address>
+</person>
