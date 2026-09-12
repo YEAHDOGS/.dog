@@ -253,8 +253,8 @@ body{font-family:var(--disp);-webkit-font-smoothing:antialiased;overflow:hidden}
 
   /* code samples: header lines (.h) vs body (.b), verbatim from the repo */
   var samples = {
-    json: '<span class="h">.dog/1.0\nmap-open: {\nmap-close: }\nseq-open: [\nseq-close: ]\nkey-sep: :\nentry-sep: ,\nbare: none</span>\n<span class="b">{"name": "Ava Reyes", "age": 29, "admin": true, "tags": ["early", "vinyl"], "address": {"city": "Tulsa", "zip": 74103}}</span>',
-    yaml: '<span class="h">.dog/1.0\nseq-item: -\nkey-sep: :\nbare: strings</span>\n<span class="b">name: Ava Reyes\nage: 29\nadmin: true\ntags:\n  - early\n  - vinyl\naddress:\n  city: Tulsa\n  zip: 74103</span>',
+    json: '<span class="h">.dog/1.0 map-open:{ map-close:} seq-open:[ seq-close:] key-sep:: entry-sep:, bare:none</span>\n\n<span class="b">{\n  "name": "Ava Reyes",\n  "age": 29,\n  "admin": true,\n  "tags": ["early", "vinyl"],\n  "address": {\n    "city": "Tulsa",\n    "zip": 74103\n  }\n}</span>',
+    yaml: '<span class="h">.dog/1.0 seq-item:"- " key-sep:: bare:strings</span>\n\n<span class="b">name: Ava Reyes\nage: 29\nadmin: true\ntags:\n  - early\n  - vinyl\naddress:\n  city: Tulsa\n  zip: 74103</span>',
     native: '<span class="h">.dog/1.0</span>\n<span class="b">name: Ava Reyes\nage: 29\nadmin: true\ntags:\n  - early\n  - vinyl\naddress:\n  city: Tulsa\n  zip: 74103</span>'
   };
   var codeview = document.getElementById('codeview');
