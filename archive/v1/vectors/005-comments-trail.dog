@@ -1,0 +1,13 @@
+!dog 1
+@bare
+@comment
+@trail
+
+{
+  # applicant record
+  applicant: {
+    handle: sampleuser,
+    platform: tiktok,
+    tags: [freestyle, icecream,],
+  },
+}
