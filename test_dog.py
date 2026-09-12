@@ -93,20 +93,20 @@ def t_nested_native():
 
 
 def t_rep_escape():
-    doc = ".dog/1.0\nrep: ~=https://x\n\nk: \\~literal and ~expanded\n"
+    doc = ".dog/1.0 rep:~=https://x\n\nk: \\~literal and ~expanded\n"
     data = parse(doc)
     assert data == {"k": "~literal and https://xexpanded"}, data
-    doc2 = ".dog/1.0\nrep: ~=https://x\n\nk: \\\\~x\n"
+    doc2 = ".dog/1.0 rep:~=https://x\n\nk: \\\\~x\n"
     assert parse(doc2) == {"k": "\\https://xx"}, parse(doc2)
 
 
 def t_dict_unknown_alias_kept():
-    doc = ".dog/1.0\ndict: n=name\n\nn: 1\nzzz: 2\n"
+    doc = ".dog/1.0 dict:n=name\n\nn: 1\nzzz: 2\n"
     assert parse(doc) == {"name": 1, "zzz": 2}
 
 
 def t_keys_with_dict_aliases():
-    doc = (".dog/1.0\nlang: dog\ndict: n=name\nkeys: n\n\n"
+    doc = (".dog/1.0 lang:dog dict:n=name keys:n\n\n"
            "Ava\nBen\n")
     assert parse(doc) == [{"name": "Ava"}, {"name": "Ben"}]
 
@@ -127,7 +127,7 @@ def t_missing_magic():
 
 def t_row_field_mismatch():
     try:
-        parse(".dog/1.0\nkeys: a b\n\n1|2|3\n")
+        parse(".dog/1.0 keys:\"a b\"\n\n1|2|3\n")
     except DogError:
         return
     raise AssertionError("field-count mismatch must raise DogError")

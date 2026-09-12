@@ -102,31 +102,72 @@ func quoteJS(s string) string {
 	return b.String()
 }
 
+// tokenizeHeaderLine splits a header line into whitespace-separated tokens.
+// Double-quoted spans may contain spaces (`keys:"a b"`); inside quotes a
+// backslash escapes the next character (`\"`, `\\`).
+func tokenizeHeaderLine(line string) ([]string, error) {
+	var tokens []string
+	var cur strings.Builder
+	flush := func() {
+		if cur.Len() > 0 {
+			tokens = append(tokens, cur.String())
+			cur.Reset()
+		}
+	}
+	inQuotes := false
+	escaped := false
+	for _, ch := range line {
+		switch {
+		case inQuotes && escaped:
+			cur.WriteRune(ch)
+			escaped = false
+		case inQuotes && ch == '\\':
+			escaped = true
+		case inQuotes && ch == '"':
+			inQuotes = false
+		case inQuotes:
+			cur.WriteRune(ch)
+		case ch == '"':
+			inQuotes = true
+		case ch == ' ' || ch == '\t' || ch == '\r' || ch == '\v' || ch == '\f':
+			flush()
+		default:
+			cur.WriteRune(ch)
+		}
+	}
+	if inQuotes || escaped {
+		return nil, dogErr("unterminated quote in header line: %s", quoteJS(line))
+	}
+	flush()
+	return tokens, nil
+}
+
+// splitHeader: the header is exactly ONE line -- line 1, starting with the
+// magic `.dog/1.0` followed by space-separated `name:value` params. A reader
+// never has to guess where the header ends. The body is every line after
+// line 1; one optional blank line right after the header is skipped.
 func splitHeader(text string) (map[string]string, []string, error) {
 	text = strings.TrimPrefix(text, "\ufeff")
 	lines := splitLines(text)
-	if len(lines) == 0 || strings.TrimSpace(lines[0]) != MAGIC {
+	if len(lines) == 0 {
+		return nil, nil, dogErr("first line must be the magic '.dog/1.0'")
+	}
+	tokens, err := tokenizeHeaderLine(lines[0])
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(tokens) == 0 || tokens[0] != MAGIC {
 		return nil, nil, dogErr("first line must be the magic '.dog/1.0'")
 	}
 	directives := map[string]string{}
-	bodyStart := len(lines)
-	for idx := 1; idx < len(lines); idx++ {
-		raw := lines[idx]
-		if strings.TrimSpace(raw) == "" {
-			bodyStart = idx + 1
-			break
-		}
-		s := strings.TrimSpace(raw)
-		if strings.HasPrefix(s, "#") {
-			continue
-		}
-		ci := strings.Index(s, ":")
+	for _, tok := range tokens[1:] {
+		ci := strings.Index(tok, ":")
 		if ci < 0 {
-			return nil, nil, dogErr("bad header directive on line %d: %s", idx+1, quoteJS(raw))
+			return nil, nil, dogErr("bad header directive %s (want name:value)", quoteJS(tok))
 		}
-		name := strings.ToLower(strings.TrimSpace(s[:ci]))
+		name := strings.ToLower(tok[:ci])
 		if name == "" || strings.ContainsAny(name, " \t\n\r\f\v") {
-			return nil, nil, dogErr("bad directive name on line %d: %s", idx+1, quoteJS(raw))
+			return nil, nil, dogErr("bad directive name in %s", quoteJS(tok))
 		}
 		// Abbreviated directives are NOT in the spec (needs founder sign-off,
 		// bag log D1). A truncated known-directive name is a hard error here,
@@ -138,9 +179,13 @@ func splitHeader(text string) (map[string]string, []string, error) {
 				return nil, nil, dogErr("truncated directive '%s:' is not valid -- abbreviations are not in the spec (want '%s:')", name, full)
 			}
 		}
-		directives[name] = strings.TrimSpace(s[ci+1:]) // last one wins
+		directives[name] = tok[ci+1:] // last one wins
 	}
-	return directives, lines[bodyStart:], nil
+	body := lines[1:]
+	if len(body) > 0 && strings.TrimSpace(body[0]) == "" {
+		body = body[1:]
+	}
+	return directives, body, nil
 }
 
 type repPair struct{ tok, exp string }

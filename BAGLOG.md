@@ -5,6 +5,27 @@ Ideas go here before they become spec, spec changes, or code.
 
 ---
 
+## The header is one line (2026-09-12)
+
+Founder's correction, verbatim: "The header should only ever be in one
+line." Directives were one-per-line with a blank line ending the header;
+now the header is always exactly line 1: `.dog/1.0` followed by
+space-separated `name:value` parameters. A reader never guesses where the
+header ends.
+
+- Values containing spaces are double-quoted: `keys:"n e r a"`,
+  `dict:"n=name e=email r=role a=active"`. Backslash escapes inside quotes.
+- One optional blank line after the header is purely visual; the body is
+  every line after line 1 either way.
+- Header comment lines are gone (there is only one header line now);
+  `#` full-line comments remain a body-syntax feature.
+- `quote: "` becomes `quote:"\""` — a bare `"` would open a quoted span.
+- All six parsers (py/js/c/go/rs/kt), the corpus, the examples, SPEC.md,
+  and README.md ported. Native `minimal.dog` dropped 391 → 297 bytes:
+  57% smaller than pretty JSON, 42% smaller than minified.
+
+---
+
 ## DOG/2: `lang:` is dead — the header IS the syntax (2026-09-11)
 
 Founder's order, verbatim principle: the `lang=json` / `lang=yaml`

@@ -1,4 +1,3 @@
-.dog/1.0
-lang: json
+.dog/1.0 lang:json
 
 {"emoji": "\ud83c\udf69", "nested": {"n": -1.5e-3}, "t": true, "z": null}

@@ -1,11 +1,4 @@
-.dog/1.0
-tag-open: <
-tag-close: >
-tag-end: </
-attr-eq: =
-quote: "
-empty-tag: />
-dup-keys: array
+.dog/1.0 lang:xml tag-open:< tag-close:> tag-end:</ attr-eq:= quote:"\"" empty-tag:/> dup-keys:array
 
 <person id="123">
 <name>Ava Reyes</name>

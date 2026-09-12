@@ -114,44 +114,82 @@ fn split_lines(text: &str) -> Vec<String> {
     lines
 }
 
+/// Split a header line into whitespace-separated tokens. Double-quoted
+/// spans may contain spaces (`keys:"a b"`); inside quotes a backslash
+/// escapes the next character (`\"`, `\\`).
+fn tokenize_header_line(line: &str) -> Result<Vec<String>, DogError> {
+    let mut tokens: Vec<String> = Vec::new();
+    let mut cur = String::new();
+    let mut in_quotes = false;
+    let mut escaped = false;
+    for ch in line.chars() {
+        if in_quotes {
+            if escaped {
+                cur.push(ch);
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                in_quotes = false;
+            } else {
+                cur.push(ch);
+            }
+        } else if ch == '"' {
+            in_quotes = true;
+        } else if matches!(ch, ' ' | '\t' | '\r' | '\u{c}' | '\u{b}') {
+            if !cur.is_empty() {
+                tokens.push(std::mem::take(&mut cur));
+            }
+        } else {
+            cur.push(ch);
+        }
+    }
+    if in_quotes || escaped {
+        return Err(dog_err(format!(
+            "unterminated quote in header line: {}",
+            quote_js(line)
+        )));
+    }
+    if !cur.is_empty() {
+        tokens.push(cur);
+    }
+    Ok(tokens)
+}
+
+/// The header is exactly ONE line: line 1, starting with the magic
+/// `.dog/1.0` followed by space-separated `name:value` params. A reader
+/// never has to guess where the header ends. The body is every line after
+/// line 1; one optional blank line right after the header is skipped.
 fn split_header(text: &str) -> Result<(HashMap<String, String>, Vec<String>), DogError> {
     let text = text.strip_prefix('\u{FEFF}').unwrap_or(text);
     let lines = split_lines(text);
-    if lines.is_empty() || lines[0].trim() != MAGIC {
+    if lines.is_empty() {
+        return Err(dog_err("first line must be the magic '.dog/1.0'".to_string()));
+    }
+    let tokens = tokenize_header_line(&lines[0])?;
+    if tokens.is_empty() || tokens[0] != MAGIC {
         return Err(dog_err("first line must be the magic '.dog/1.0'".to_string()));
     }
     let mut directives: HashMap<String, String> = HashMap::new();
-    let mut body_start = lines.len();
-    for idx in 1..lines.len() {
-        let raw = &lines[idx];
-        if raw.trim().is_empty() {
-            body_start = idx + 1;
-            break;
-        }
-        let s = raw.trim();
-        if s.starts_with('#') {
-            continue;
-        }
-        let ci = match s.find(':') {
+    for tok in tokens.iter().skip(1) {
+        let ci = match tok.find(':') {
             Some(i) => i,
             None => {
                 return Err(dog_err(format!(
-                    "bad header directive on line {}: {}",
-                    idx + 1,
-                    quote_js(raw)
+                    "bad header directive {} (want name:value)",
+                    quote_js(tok)
                 )))
             }
         };
-        let name = s[..ci].trim().to_lowercase();
+        let name = tok[..ci].to_lowercase();
         if name.is_empty()
             || name
                 .chars()
                 .any(|c| matches!(c, ' ' | '\t' | '\n' | '\r' | '\u{c}' | '\u{b}'))
         {
             return Err(dog_err(format!(
-                "bad directive name on line {}: {}",
-                idx + 1,
-                quote_js(raw)
+                "bad directive name in {}",
+                quote_js(tok)
             )));
         }
         // Abbreviated directives are NOT in the spec (needs founder sign-off,
@@ -167,9 +205,13 @@ fn split_header(text: &str) -> Result<(HashMap<String, String>, Vec<String>), Do
                 )));
             }
         }
-        directives.insert(name, s[ci + 1..].trim().to_string()); // last one wins
+        directives.insert(name, tok[ci + 1..].to_string()); // last one wins
     }
-    Ok((directives, lines[body_start..].to_vec()))
+    let mut body: Vec<String> = lines.into_iter().skip(1).collect();
+    if !body.is_empty() && body[0].trim().is_empty() {
+        body.remove(0);
+    }
+    Ok((directives, body))
 }
 
 #[allow(dead_code)] // `indent` is advisory for writers; readers only validate it

@@ -14,17 +14,10 @@ body is your data. Two promises:
 
 `examples/minimal.json` is ordinary pretty-printed JSON.
 `examples/user-json.dog` shows the trick on a small record — the body is
-byte-identical JSON, the 7-line header is the entire format declaration:
+byte-identical JSON, the one-line header is the entire format declaration:
 
 ```
-.dog/1.0
-map-open: {
-map-close: }
-seq-open: [
-seq-close: ]
-key-sep: :
-entry-sep: ,
-bare: none
+.dog/1.0 map-open:{ map-close:} seq-open:[ seq-close:] key-sep:: entry-sep:, bare:none
 
 {"name": "Ava Reyes", "age": 29, ...}
 ```
@@ -32,7 +25,7 @@ bare: none
 Proof the body is byte-identical:
 
 ```sh
-sed -n '10,$p' examples/user-json.dog | python3 -c "import json,sys; json.load(sys.stdin); print('VALID JSON')"
+sed -n '3,$p' examples/user-json.dog | python3 -c "import json,sys; json.load(sys.stdin); print('VALID JSON')"
 ```
 
 ## Demo 2: the same data, three syntaxes, one value
@@ -49,11 +42,7 @@ configuration.)
 The same data, rewritten in native .dog with the header tools:
 
 ```
-.dog/1.0
-dict: n=name e=email r=role a=active
-rep: ~=@example.com
-keys: n e r a
-sep: |
+.dog/1.0 dict:"n=name e=email r=role a=active" rep:~=@example.com keys:"n e r a" sep:|
 
 Ava Reyes|ava.reyes~|admin|true
 Ben Okafor|ben.okafor~|member|true
@@ -71,9 +60,9 @@ with `wc -c`, same data, all three verified to parse identically:
 |---|---|
 | pretty-printed JSON (`minimal.json`) | 692 |
 | minified JSON | 510 |
-| **native .dog (`minimal.dog`)** | **391** |
+| **native .dog (`minimal.dog`)** | **297** |
 
-That's **43% smaller than the JSON a human writes**, and **23% smaller than
+That's **57% smaller than the JSON a human writes**, and **42% smaller than
 minified JSON** — while remaining readable and editable by hand. The header
 is the compression dictionary, in plain sight.
 
@@ -108,7 +97,7 @@ tests/run-corpus.sh   C conformance runner: 39/39 corpus cases + dog.py agreemen
 test_dog.py        test suite
 examples/
   minimal.json        sample data as pretty JSON (692 bytes)
-  minimal.dog         same data, native dog (391 bytes)
+  minimal.dog         same data, native dog (297 bytes)
   user.dog            the same record, native .dog config (v1)
   user-json.dog       the same record, JSON bundle config — body is byte-identical JSON
   user-yaml.dog       the same record, YAML bundle config

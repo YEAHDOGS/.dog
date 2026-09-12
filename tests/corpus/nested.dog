@@ -1,7 +1,4 @@
-.dog/1.0
-lang: dog
-dict: n=name
-rep: ~=https://dogs.example
+.dog/1.0 lang:dog dict:n=name rep:~=https://dogs.example
 
 server:
   n: castle

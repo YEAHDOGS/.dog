@@ -1,6 +1,4 @@
-.dog/1.0
-# header comment
-lang: dog
+.dog/1.0 lang:dog
 
 # body comment
 k: 1

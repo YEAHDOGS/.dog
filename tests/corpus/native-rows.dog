@@ -1,10 +1,4 @@
-.dog/1.0
-# Same data as minimal.json (692 bytes). Count this file's bytes. Then read README.
-lang: dog
-dict: n=name e=email r=role a=active
-rep: ~=@example.com
-keys: n e r a
-sep: |
+.dog/1.0 lang:dog dict:"n=name e=email r=role a=active" rep:~=@example.com keys:"n e r a" sep:|
 
 Ava Reyes|ava.reyes~|admin|true
 Ben Okafor|ben.okafor~|member|true

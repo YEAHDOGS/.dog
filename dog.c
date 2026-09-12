@@ -311,13 +311,6 @@ static char *trim(const char *s) {
     return xstrndup((const char *)a, (size_t)(b - a));
 }
 
-static char *trim_n(const char *s, size_t n) {
-    char *tmp = xstrndup(s, n);
-    char *t = trim(tmp);
-    free(tmp);
-    return t;
-}
-
 static char *to_lower_ascii(const char *s) {
     char *o = xstrdup(s);
     for (char *q = o; *q; q++)
@@ -425,17 +418,55 @@ static void split_lines(const char *text, StrVec *out) {
     }
 }
 
+/* Split a header line into whitespace-separated tokens. Double-quoted
+ * spans may contain spaces (`keys:"a b"`); inside quotes a backslash
+ * escapes the next character (`\"`, `\\`). Returns 0 on success,
+ * nonzero after fail() on unterminated quote. */
+static int tokenize_header_line(P *p, const char *line, StrVec *out) {
+    Str cur;
+    str_init(&cur);
+    int in_quotes = 0, escaped = 0;
+    for (const unsigned char *s = (const unsigned char *)line; *s; s++) {
+        char ch = (char)*s;
+        if (in_quotes) {
+            if (escaped) { str_pushc(&cur, ch); escaped = 0; }
+            else if (ch == '\\') escaped = 1;
+            else if (ch == '"') in_quotes = 0;
+            else str_pushc(&cur, ch);
+        } else if (ch == '"') {
+            in_quotes = 1;
+        } else if (ch == ' ' || ch == '\t' || ch == '\r' ||
+                   ch == '\v' || ch == '\f') {
+            if (cur.len) sv_push(out, str_take(&cur));
+        } else {
+            str_pushc(&cur, ch);
+        }
+    }
+    if (in_quotes || escaped) {
+        fail(p, "unterminated quote in header line: '%s'", line);
+        str_free(&cur);
+        return 1;
+    }
+    if (cur.len) sv_push(out, str_take(&cur));
+    else str_free(&cur);
+    return 0;
+}
+
 /* Split raw text into header directives and body lines.
- * Line 1 must be the magic `.dog/1.0`. A blank line ends the header
- * (EOF ends it leniently). `#` lines are comments. Unknown directives
- * are ignored (forward compat) -- EXCEPT truncated known-directive
- * names, which are hard errors. */
+ * The header is exactly ONE line: line 1, starting with the magic
+ * `.dog/1.0` followed by space-separated `name:value` params. A reader
+ * never has to guess where the header ends -- it is always line 1.
+ * Unknown directives are ignored (forward compat) -- EXCEPT truncated
+ * known-directive names, which are hard errors. The body is every line
+ * after line 1; one optional blank line right after the header is
+ * skipped. */
 static void parse_header(P *p, const char *text, StrMap *dirs,
                          char ***body_out, size_t *nbody_out) {
     const char *t = text;
     if ((unsigned char)t[0] == 0xEF && (unsigned char)t[1] == 0xBB &&
         (unsigned char)t[2] == 0xBF) t += 3; /* single BOM, like dog.js */
     StrVec lines;
+    sv_init(&lines);
     split_lines(t, &lines);
     *body_out = NULL; *nbody_out = 0;
     if (lines.len == 0) {
@@ -443,36 +474,42 @@ static void parse_header(P *p, const char *text, StrMap *dirs,
         sv_free(&lines);
         return;
     }
-    char *first = trim(lines.items[0]);
-    int ok = strcmp(first, ".dog/1.0") == 0;
-    free(first);
-    if (!ok) {
-        fail(p, "first line must be the magic '.dog/1.0'");
+    StrVec toks;
+    sv_init(&toks);
+    if (tokenize_header_line(p, lines.items[0], &toks)) {
+        sv_free(&toks);
         sv_free(&lines);
         return;
     }
-    size_t body_start = lines.len;
-    for (size_t idx = 1; idx < lines.len; idx++) {
-        char *raw = lines.items[idx];
-        char *s = trim(raw);
-        if (s[0] == '\0') { body_start = idx + 1; free(s); break; }
-        if (s[0] == '#') { free(s); continue; }
-        char *ci = strchr(s, ':');
+    if (toks.len == 0 || strcmp(toks.items[0], ".dog/1.0") != 0) {
+        fail(p, "first line must be the magic '.dog/1.0'");
+        sv_free(&toks);
+        sv_free(&lines);
+        return;
+    }
+    for (size_t i = 1; i < toks.len; i++) {
+        char *tok = toks.items[i];
+        char *ci = strchr(tok, ':');
         if (!ci) {
-            fail(p, "bad header directive on line %lu: '%s'", (unsigned long)(idx + 1), raw);
-            free(s);
+            fail(p, "bad header directive '%s' (want name:value)", tok);
+            sv_free(&toks);
             sv_free(&lines);
             return;
         }
-        char *name = trim_n(s, (size_t)(ci - s));
-        for (char *q = name; *q; q++)
-            if (*q >= 'A' && *q <= 'Z') *q = (char)(*q + ('a' - 'A'));
-        int bad = name[0] == '\0';
-        for (char *q = name; *q && !bad; q++)
-            if (isspace((unsigned char)*q)) bad = 1;
+        size_t nlen = (size_t)(ci - tok);
+        char *name = xmalloc(nlen + 1);
+        for (size_t q = 0; q < nlen; q++) {
+            char c = tok[q];
+            name[q] = (char)(c >= 'A' && c <= 'Z' ? c + ('a' - 'A') : c);
+        }
+        name[nlen] = '\0';
+        int bad = nlen == 0;
+        for (size_t q = 0; q < nlen && !bad; q++)
+            if (isspace((unsigned char)name[q])) bad = 1;
         if (bad) {
-            fail(p, "bad directive name on line %lu: '%s'", (unsigned long)(idx + 1), raw);
-            free(name); free(s);
+            fail(p, "bad directive name in '%s'", tok);
+            free(name);
+            sv_free(&toks);
             sv_free(&lines);
             return;
         }
@@ -486,14 +523,22 @@ static void parse_header(P *p, const char *text, StrMap *dirs,
             if (strcmp(name, full) != 0 && strncmp(full, name, strlen(name)) == 0) {
                 fail(p, "truncated directive '%s:' is not valid -- abbreviations are not "
                         "in the spec (want '%s:')", name, full);
-                free(name); free(s);
+                free(name);
+                sv_free(&toks);
                 sv_free(&lines);
                 return;
             }
         }
-        char *val = trim(ci + 1);
-        sm_set(dirs, name, val);
-        free(name); free(val); free(s);
+        sm_set(dirs, name, ci + 1);
+        free(name);
+    }
+    sv_free(&toks);
+    size_t body_start = 1;
+    if (body_start < lines.len) {
+        char *s = trim(lines.items[body_start]);
+        int blank = s[0] == '\0';
+        free(s);
+        if (blank) body_start++;
     }
     if (body_start < lines.len) {
         *body_out = xmalloc((lines.len - body_start) * sizeof(char *));

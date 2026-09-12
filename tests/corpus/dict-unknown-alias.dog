@@ -1,5 +1,4 @@
-.dog/1.0
-dict: n=name
+.dog/1.0 dict:n=name
 
 n: 1
 zzz: 2

@@ -1,5 +1,4 @@
-.dog/1.0
-lang: xml
+.dog/1.0 lang:xml
 
 <users>
   <user active="true">

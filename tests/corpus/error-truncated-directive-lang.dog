@@ -1,4 +1,3 @@
-.dog/1.0
-l: json
+.dog/1.0 l:json
 
 {"a": 1}

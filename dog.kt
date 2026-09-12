@@ -104,26 +104,58 @@ data class Config(
     val quote: String = "\""
 )
 
+/* Split a header line into whitespace-separated tokens. Double-quoted
+   spans may contain spaces (`keys:"a b"`); inside quotes a backslash
+   escapes the next character (`\"` , `\\`). */
+fun tokenizeHeaderLine(line: String): List<String> {
+    val tokens = mutableListOf<String>()
+    val cur = StringBuilder()
+    var inQuotes = false
+    var escaped = false
+    for (ch in line) {
+        if (inQuotes) {
+            when {
+                escaped -> { cur.append(ch); escaped = false }
+                ch == '\\' -> escaped = true
+                ch == '"' -> inQuotes = false
+                else -> cur.append(ch)
+            }
+        } else when (ch) {
+            '"' -> inQuotes = true
+            ' ', '\t', '\r', '\u000B', '\u000C' -> {
+                if (cur.isNotEmpty()) { tokens.add(cur.toString()); cur.clear() }
+            }
+            else -> cur.append(ch)
+        }
+    }
+    if (inQuotes || escaped) throw DogError("unterminated quote in header line: ${jsonQuote(line)}")
+    if (cur.isNotEmpty()) tokens.add(cur.toString())
+    return tokens
+}
+
+/* The header is exactly ONE line: line 1, starting with the magic
+   `.dog/1.0` followed by space-separated `name:value` params. A reader
+   never has to guess where the header ends. The body is every line
+   after line 1; one optional blank line right after the header is skipped. */
 fun splitHeader(text: String): Pair<Map<String, String>, List<String>> {
     val stripped = text.removePrefix("﻿")
     val lines = stripped.split(Regex("\r\n|[\n\r  ]"))
-    if (lines.isEmpty() || lines[0].trim() != MAGIC) {
+    if (lines.isEmpty()) {
+        throw DogError("first line must be the magic '.dog/1.0'")
+    }
+    val tokens = tokenizeHeaderLine(lines[0])
+    if (tokens.isEmpty() || tokens[0] != MAGIC) {
         throw DogError("first line must be the magic '.dog/1.0'")
     }
     val directives = LinkedHashMap<String, String>()
-    var bodyStart = lines.size
-    for (idx in 1 until lines.size) {
-        val raw = lines[idx]
-        if (raw.trim().isEmpty()) { bodyStart = idx + 1; break }
-        val s = raw.trim()
-        if (s.startsWith("#")) continue
-        val ci = s.indexOf(':')
+    for (tok in tokens.drop(1)) {
+        val ci = tok.indexOf(':')
         if (ci < 0) {
-            throw DogError("bad header directive on line ${idx + 1}: ${jsonQuote(raw)}")
+            throw DogError("bad header directive ${jsonQuote(tok)} (want name:value)")
         }
-        val name = s.substring(0, ci).trim().lowercase(Locale.ROOT)
+        val name = tok.substring(0, ci).lowercase(Locale.ROOT)
         if (name.isEmpty() || name.any { it.isWhitespace() }) {
-            throw DogError("bad directive name on line ${idx + 1}: ${jsonQuote(raw)}")
+            throw DogError("bad directive name in ${jsonQuote(tok)}")
         }
         // Abbreviated directives are NOT in the spec (needs founder sign-off,
         // bag log D1). A truncated known-directive name is a hard error here,
@@ -135,9 +167,11 @@ fun splitHeader(text: String): Pair<Map<String, String>, List<String>> {
                 throw DogError("truncated directive '$name:' is not valid -- abbreviations are not in the spec (want '$full:')")
             }
         }
-        directives[name] = s.substring(ci + 1).trim() // last one wins
+        directives[name] = tok.substring(ci + 1) // last one wins
     }
-    return Pair(directives, lines.subList(bodyStart, lines.size))
+    var body = lines.drop(1)
+    if (body.isNotEmpty() && body[0].trim().isEmpty()) body = body.drop(1)
+    return Pair(directives, body)
 }
 
 fun splitWs(s: String): List<String> = s.split(Regex("\\s+")).filter { it.isNotEmpty() }

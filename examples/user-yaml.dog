@@ -1,7 +1,4 @@
-.dog/1.0
-seq-item: -
-key-sep: :
-bare: strings
+.dog/1.0 lang:yaml seq-item:- key-sep:: bare:strings
 
 name: Ava Reyes
 age: 29

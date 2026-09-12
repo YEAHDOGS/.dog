@@ -27,35 +27,77 @@ class DogError(Exception):
 # header
 # ---------------------------------------------------------------------------
 
+def tokenize_header(line):
+    """Split a header line into whitespace-separated tokens.
+
+    Double-quoted spans may contain spaces: `keys:"a b"`. Inside quotes,
+    a backslash escapes the next character (`\"`, `\\`).
+    """
+    tokens = []
+    cur = []
+    in_quotes = False
+    escaped = False
+    for ch in line:
+        if in_quotes:
+            if escaped:
+                cur.append(ch)
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_quotes = False
+            else:
+                cur.append(ch)
+        elif ch == '"':
+            in_quotes = True
+        elif ch in (" ", "\t", "\r", "\v", "\f"):
+            if cur:
+                tokens.append("".join(cur))
+                cur = []
+        else:
+            cur.append(ch)
+    if in_quotes or escaped:
+        raise DogError("unterminated quote in header line: %r" % line)
+    if cur:
+        tokens.append("".join(cur))
+    return tokens
+
+
 def split_header(text):
     """Split raw text into (directives dict, body lines).
 
-    Line 1 must be the magic `.dog/1.0`. Header directives are `name: value`,
-    one per line; a blank line ends the header (EOF also ends it, leniently).
-    `#` lines are comments. Unknown directives are ignored (forward compat).
+    The header is exactly ONE line: line 1. It starts with the magic
+    `.dog/1.0`, followed by zero or more space-separated `name:value`
+    params. A reader never has to guess where the header ends -- it is
+    always line 1, so the param count is never ambiguous.
+
+    Values containing spaces must be double-quoted (`keys:"a b"`).
+    Directive names are case-insensitive; the last occurrence wins.
+    Unknown directives are ignored (forward compat).
+
+    The body is every line after line 1; one optional blank line right
+    after the header is skipped.
     """
     text = text.lstrip("\ufeff")
     lines = text.splitlines()
-    if not lines or lines[0].strip() != MAGIC:
+    if not lines:
+        raise DogError("first line must be the magic %r" % MAGIC)
+    tokens = tokenize_header(lines[0])
+    if not tokens or tokens[0] != MAGIC:
         raise DogError("first line must be the magic %r" % MAGIC)
     directives = {}
-    body_start = len(lines)
-    for idx in range(1, len(lines)):
-        raw = lines[idx]
-        if raw.strip() == "":
-            body_start = idx + 1
-            break
-        s = raw.strip()
-        if s.startswith("#"):
-            continue
-        if ":" not in s:
-            raise DogError("bad header directive on line %d: %r" % (idx + 1, raw))
-        name, val = s.split(":", 1)
-        name = name.strip().lower()
+    for tok in tokens[1:]:
+        if ":" not in tok:
+            raise DogError("bad header directive %r (want name:value)" % tok)
+        name, val = tok.split(":", 1)
+        name = name.lower()
         if not name or re.search(r"\s", name):
-            raise DogError("bad directive name on line %d: %r" % (idx + 1, raw))
-        directives[name] = val.strip()  # last one wins
-    return directives, lines[body_start:]
+            raise DogError("bad directive name in %r" % tok)
+        directives[name] = val  # last one wins
+    body = lines[1:]
+    if body and body[0].strip() == "":
+        body = body[1:]
+    return directives, body
 
 
 def build_config(directives):

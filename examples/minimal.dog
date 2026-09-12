@@ -1,8 +1,4 @@
-.dog/1.0
-dict: n=name e=email r=role a=active
-rep: ~=@example.com
-keys: n e r a
-sep: |
+.dog/1.0 dict:"n=name e=email r=role a=active" rep:~=@example.com keys:"n e r a" sep:|
 
 Ava Reyes|ava.reyes~|admin|true
 Ben Okafor|ben.okafor~|member|true

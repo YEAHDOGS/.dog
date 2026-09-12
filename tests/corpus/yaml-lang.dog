@@ -1,5 +1,4 @@
-.dog/1.0
-lang: yaml
+.dog/1.0 lang:yaml
 
 - name: Ava Reyes
   email: ava.reyes@example.com

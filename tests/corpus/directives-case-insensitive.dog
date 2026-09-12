@@ -1,5 +1,3 @@
-.dog/1.0
-LANG: json
-SEP: ,
+.dog/1.0 LANG:json SEP:,
 
 {"a": 1}

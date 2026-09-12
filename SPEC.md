@@ -21,32 +21,32 @@ Design goals, in order:
 ## 1. Document layout
 
 ```
-.dog/1.0
-map-open: {
-map-close: }
-seq-open: [
-seq-close: ]
-key-sep: :
-entry-sep: ,
-bare: none
+.dog/1.0 map-open:{ map-close:} seq-open:[ seq-close:] key-sep:: entry-sep:, bare:none
 
 {"name": "Ava", "age": 29}
 ```
 
 - **Line 1** is the magic: exactly `.dog/1.0`. Anything else is not a .dog
   file.
-- **Header**: directive lines, one per line, `name: value`. Ends at the
-  first blank line (a file that ends without a blank line is accepted
-  leniently).
-- **Body**: everything after the header, parsed per the header's syntax
-  parameters.
-- Directive names are case-insensitive; values are case-sensitive.
-  Leading/trailing ASCII whitespace is stripped from values.
-- `#` starts a comment line in the header. There are no inline comments.
+- **Header**: exactly **one line** — line 1. It starts with the magic,
+  followed by zero or more space-separated `name:value` parameters.
+  A reader never has to guess where the header ends: it is always line 1.
+- Parameter values containing spaces must be double-quoted:
+  `keys:"n e r a"`. Inside quotes, a backslash escapes the next character
+  (`\"`, `\\`). An unterminated quote is an error.
+- A token without a `:` is an error. Directive names are case-insensitive;
+  values are case-sensitive and taken exactly as written (quoting, not
+  whitespace stripping, is how a value keeps its spaces).
+- There are no header comment lines — the header is one line. (`#`
+  full-line comments remain a body-syntax feature wherever the body
+  syntax supports them.)
+- **Body**: every line after line 1, parsed per the header's syntax
+  parameters. One optional blank line immediately after the header is
+  skipped, purely visual.
 - A repeated directive: the last occurrence wins.
 - **Unknown directives are ignored** — this is how the format grows without
-  breaking old readers. There is no `lang:` directive: a `lang:` line in a
-  `.dog/1.0` file is unknown and ignored (see §7).
+  breaking old readers. There is no `lang:` directive: a `lang:` parameter
+  in a `.dog/1.0` file is unknown and ignored (see §7).
 
 ## 2. Syntax parameters
 
@@ -132,24 +132,14 @@ bare: none
 prepending this header and changing zero body bytes:
 
 ```
-.dog/1.0
-map-open: {
-map-close: }
-seq-open: [
-seq-close: ]
-key-sep: :
-entry-sep: ,
-bare: none
+.dog/1.0 map-open:{ map-close:} seq-open:[ seq-close:] key-sep:: entry-sep:, bare:none
 ```
 
 **YAML** (block subset: mappings, sequences, nesting, plain/quoted
 scalars). Indent mode is the default, so no open tokens are needed:
 
 ```
-.dog/1.0
-seq-item: -
-key-sep: :
-bare: strings
+.dog/1.0 seq-item:"- " key-sep:: bare:strings
 ```
 
 Anchors, flow styles, and tags are out of scope for now.
@@ -161,14 +151,7 @@ items, `:` key separator, bare strings allowed — plus `dict:`/`rep:`/
 **XML.** Named elements fall out of the tag parameters — no special case:
 
 ```
-.dog/1.0
-tag-open: <
-tag-close: >
-tag-end: </
-attr-eq: =
-quote: "
-empty-tag: />
-dup-keys: array
+.dog/1.0 tag-open:< tag-close:> tag-end:</ attr-eq:= quote:"\"" empty-tag:/> dup-keys:array
 ```
 
 `examples/user-xml.dog` carries the same record as §4's trio: attributes

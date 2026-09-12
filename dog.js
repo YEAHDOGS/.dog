@@ -42,31 +42,61 @@
   }
 
   /* ------------------------------------------------------------------ */
-  /* header                                                              */
+  /* header: exactly ONE line. `.dog/1.0` then space-separated          */
+  /* `name:value` params. A reader never guesses where the header      */
+  /* ends -- it is always line 1.                                      */
   /* ------------------------------------------------------------------ */
+
+  /* Split a header line into whitespace-separated tokens. Double-quoted
+     spans may contain spaces (`keys:"a b"`); inside quotes a backslash
+     escapes the next character (`\"`, `\\`). */
+  function tokenizeHeader(line) {
+    var tokens = [], cur = [], inQuotes = false, escaped = false;
+    for (var i = 0; i < line.length; i++) {
+      var ch = line.charAt(i);
+      if (inQuotes) {
+        if (escaped) { cur.push(ch); escaped = false; }
+        else if (ch === "\\") { escaped = true; }
+        else if (ch === '"') { inQuotes = false; }
+        else { cur.push(ch); }
+      } else if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === " " || ch === "\t" || ch === "\r" ||
+                 ch === "\v" || ch === "\f") {
+        if (cur.length) { tokens.push(cur.join("")); cur = []; }
+      } else {
+        cur.push(ch);
+      }
+    }
+    if (inQuotes || escaped) {
+      throw new DogError("unterminated quote in header line: " +
+                         JSON.stringify(line));
+    }
+    if (cur.length) tokens.push(cur.join(""));
+    return tokens;
+  }
 
   function splitHeader(text) {
     text = text.replace(/^﻿/, "");
     var lines = text.split(/\r\n|[\n\r\x85\u2028\u2029]/);
-    if (lines.length === 0 || lines[0].trim() !== MAGIC) {
+    if (lines.length === 0) {
+      throw new DogError("first line must be the magic '.dog/1.0'");
+    }
+    var tokens = tokenizeHeader(lines[0]);
+    if (tokens.length === 0 || tokens[0] !== MAGIC) {
       throw new DogError("first line must be the magic '.dog/1.0'");
     }
     var directives = newObj();
-    var bodyStart = lines.length;
-    for (var idx = 1; idx < lines.length; idx++) {
-      var raw = lines[idx];
-      if (raw.trim() === "") { bodyStart = idx + 1; break; }
-      var s = raw.trim();
-      if (s.charAt(0) === "#") continue;
-      var ci = s.indexOf(":");
+    for (var t = 1; t < tokens.length; t++) {
+      var tok = tokens[t];
+      var ci = tok.indexOf(":");
       if (ci < 0) {
-        throw new DogError("bad header directive on line " + (idx + 1) +
-                           ": " + JSON.stringify(raw));
+        throw new DogError("bad header directive " + JSON.stringify(tok) +
+                           " (want name:value)");
       }
-      var name = s.slice(0, ci).trim().toLowerCase();
+      var name = tok.slice(0, ci).toLowerCase();
       if (!name || /\s/.test(name)) {
-        throw new DogError("bad directive name on line " + (idx + 1) +
-                           ": " + JSON.stringify(raw));
+        throw new DogError("bad directive name in " + JSON.stringify(tok));
       }
       // Abbreviated directives are NOT in the spec (needs founder sign-off,
       // bag log D1). A truncated known-directive name is a hard error here,
@@ -81,9 +111,11 @@
             full + ":')");
         }
       }
-      directives[name] = s.slice(ci + 1).trim(); // last one wins
+      directives[name] = tok.slice(ci + 1); // last one wins
     }
-    return { directives: directives, body: lines.slice(bodyStart) };
+    var body = lines.slice(1);
+    if (body.length > 0 && body[0].trim() === "") body = body.slice(1);
+    return { directives: directives, body: body };
   }
 
   function buildConfig(directives) {
