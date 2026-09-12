@@ -5,6 +5,49 @@ Ideas go here before they become spec, spec changes, or code.
 
 ---
 
+## DOG/2: `lang:` is dead — the header IS the syntax (2026-09-11)
+
+Founder's order, verbatim principle: the `lang=json` / `lang=yaml`
+shortcut was "lazy bullshit." No special cases, no escape hatches.
+
+What changed:
+- **No `lang:` directive.** The body's syntax is fully described by
+  generic header parameters. Magic bumped to `.dog/2.0` (breaking change;
+  v1 files need the mechanical migration in SPEC.md §7).
+- **New syntax parameters** (§2): `map-open:`/`map-close:`,
+  `seq-open:`/`seq-close:`, `key-sep:` (default `:`), `entry-sep:`
+  (default newline), `seq-item:` (default `- `), `quote:` (default `"`),
+  `quote2:` (unset), `escape:` (default `\`), `bare:` (`strings` default |
+  `none`).
+- **JSON = 7-line parameter bundle** (§3). Any JSON file + that header,
+  zero body bytes changed, = valid .dog. Verified byte-identical against
+  `examples/minimal.json`.
+- **YAML block subset = 3-line bundle.** Indent mode is the default; no
+  open tokens needed.
+- **Semantics are invariant across configurations** (R2.1 holds
+  everywhere): bare `NO` is the string `"NO"` even in YAML syntax.
+  This closes the loop on R3.4 — presets are now genuinely macros over
+  declared parameters, documented in SPEC.md, and the shortcut is gone.
+- `dict:`/`rep:` now apply in every configuration, not just native.
+  `keys:` rows require newline `entry-sep` (else document error).
+- `examples/user.dog`, `user-json.dog`, `user-yaml.dog`: same data, three
+  configs, verified to parse to the identical value.
+- Old examples migrated to DOG/2 (`minimal.dog`, `nested.dog`,
+  `json-variation.dog`, `yaml-variation.dog`).
+
+Open questions for the founder:
+1. **XML** — can't be a delimiter bundle (attributes/`@attr`/`#text` are
+   data-model mappings, not syntax). Drop it from the spec, or keep as a
+   documented mapping outside the parameter system? Recommendation: drop
+   (R3.2, no sprawl).
+2. **Parser fleet** — all 6 v1 parsers (py/js/go/rs/kt/c) + 39-case corpus
+   are DOG/1. Porting to DOG/2 is queued; corpus needs v2 vectors.
+3. **YEAHDOGS/dog repo** has its own older v1 spec ("strict syntactic
+   superset of JSON") that conflicts with this design. Needs a ruling on
+   which repo is canonical.
+
+---
+
 ## Parser fleet — matrix
 
 Goal: a conformance-passing parser in every major language, on every major

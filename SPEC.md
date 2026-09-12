@@ -1,197 +1,190 @@
-# .dog/1.0 — Format Specification (DOG/1)
+# .dog/2.0 — Format Specification (DOG/2)
 
-`.dog` is a minimal plain-text data format. A short **header** carries encoding
-tools — key dictionaries, repeated-string avoidance, positional row layouts —
-and the **body** carries the data in one of four languages: native `dog`,
-or byte-identical `json`, `xml`, `yaml`.
+`.dog` is a minimal plain-text data format. A short **header** declares the
+syntax — every brace, quote, hyphen, and separator is a header parameter —
+and the **body** carries the data in that syntax.
 
 Design goals, in order:
 
-1. **Any JSON file is valid .dog.** Add the header; change zero body bytes.
-2. **Minimal when it matters.** Native `dog` syntax plus header tools cuts
+1. **JSON is just .dog with different settings.** There is no `lang:`
+   shortcut and no special case: the generic header parameters are
+   expressive enough that a JSON document is valid .dog purely through
+   header configuration. Same for YAML.
+2. **Minimal when it matters.** The native configuration plus header tools
+   (key dictionaries, repeated-string avoidance, positional rows) cuts
    typical JSON payloads roughly in half — smaller than minified JSON while
    staying human-readable.
-3. **One data model.** Every .dog document, in any body language, denotes
-   exactly one JSON-equivalent value (object, array, string, number,
-   boolean, or null).
+3. **One data model, one type discipline.** Every .dog document, in any
+   header configuration, denotes exactly one JSON-equivalent value. Syntax
+   is configurable; semantics are not: no implicit typing, ever.
 
 ## 1. Document layout
 
 ```
-.dog/1.0
-lang: dog
-dict: n=name a=age
-rep: ~=https://example.com/
-
-n: Ava
-a: 29
-```
-
-- **Line 1** is the magic: exactly `.dog/1.0`. Anything else is not a .dog file.
-- **Header**: directive lines, one per line, `name: value`. Ends at the first
-  blank line (a file that ends without a blank line is accepted leniently).
-- **Body**: everything after the header. Interpreted per `lang:`.
-
-## 2. Header directives
-
-| Directive | Default | Meaning |
-|-----------|---------|---------|
-| `lang:`   | `dog`   | Body language: `dog`, `json`, `xml`, `yaml` |
-| `dict:`   | —       | Key dictionary: `alias=real` pairs, space-separated. Body keys written as aliases expand to the real key. |
-| `rep:`    | —       | Repeated-string avoidance: `token=expansion` pairs, space-separated. The token expands everywhere in native-dog scalar values and keys. |
-| `keys:`   | —       | Positional key order. When present, every body line is a `sep`-separated row of bare values mapped to these keys in order. Aliases from `dict:` are allowed here. |
-| `sep:`    | `\|`    | Field separator for `keys:` rows. |
-| `indent:` | `2`     | Advisory indent width for writers. Readers accept any consistent deeper indentation. |
-| `quote:`  | `"`     | Quote character for string scalars. |
-
-Rules:
-
-- Directive names are case-insensitive; values are case-sensitive (`lang:` aside).
-- `#` starts a comment line in the header. There are no inline comments.
-- A repeated directive: the last occurrence wins.
-- **Unknown directives are ignored.** A v1 reader skips what it doesn't know,
-  which is how the format grows without breaking old files.
-- `rep:` pairs split on whitespace, so an expansion cannot contain a literal
-  space in v1 — use `%20` or choose tokens accordingly.
-
-### Expansion order and escaping
-
-1. `dict:` expands **keys** (map keys, and `keys:` row headers). Unknown
-   aliases are kept as-is.
-2. `rep:` expands **scalar values and keys**, longest token first, so
-   overlapping tokens behave predictably.
-3. A backslash escapes the next character: `\~` is a literal `~` even when
-   `~` is a rep token; `\\` is a literal backslash. Escaped characters are
-   hidden from substitution entirely.
-
-`dict:`, `rep:`, and `keys:` are **native-dog tools**. Bodies in `json`,
-`xml`, or `yaml` are byte-identical to the source format — no expansion is
-applied to them, ever.
-
-## 3. `lang: json` / `xml` / `yaml` — the header is the format
-
-The body is raw JSON, XML, or YAML, byte for byte. The header alone makes it
-a valid .dog file:
-
-```
-.dog/1.0
-lang: json
+.dog/2.0
+map-open: {
+map-close: }
+seq-open: [
+seq-close: ]
+key-sep: :
+entry-sep: ,
+bare: none
 
 {"name": "Ava", "age": 29}
 ```
 
-This is the whole trick behind goal #1: take any JSON file, prepend the
-header, and it is .dog. Tooling can then translate it into native `dog`
-syntax to harvest the byte savings, or leave it untouched.
+- **Line 1** is the magic: exactly `.dog/2.0`. Anything else is not a .dog
+  file.
+- **Header**: directive lines, one per line, `name: value`. Ends at the
+  first blank line (a file that ends without a blank line is accepted
+  leniently).
+- **Body**: everything after the header, parsed per the header's syntax
+  parameters.
+- Directive names are case-insensitive; values are case-sensitive.
+  Leading/trailing ASCII whitespace is stripped from values.
+- `#` starts a comment line in the header. There are no inline comments.
+- A repeated directive: the last occurrence wins.
+- **Unknown directives are ignored** — this is how the format grows without
+  breaking old readers. There is no `lang:` directive: a `lang:` line in a
+  `.dog/2.0` file is unknown and ignored (see §7 Migration).
 
-The reference parser maps each body to the same JSON-equivalent value:
+## 2. Syntax parameters
 
-- **JSON**: parsed as JSON, errors reported as dog errors.
-- **XML**: parsed with a standard XML parser. Attributes become `"@name"`
-  keys (always strings), repeated sibling elements become arrays, element
-  text becomes `"#text"` when the element also has attributes/children,
-  otherwise a coerced scalar. `<user active="true"><name>Ava</name></user>`
-  becomes `{"@active": "true", "name": "Ava"}`.
-- **YAML**: the common block subset — mappings, sequences, nesting by
-  indentation, plain/quoted scalars. Anchors, flow styles, and tags are out
-  of scope for v1; the reference parser reuses the native-dog grammar for
-  this subset.
+| Directive   | Default    | Meaning |
+|-------------|------------|---------|
+| `map-open:` | (unset)    | Token opening a map, e.g. `{` |
+| `map-close:`| (unset)    | Token closing a map, e.g. `}` |
+| `seq-open:` | (unset)    | Token opening a sequence, e.g. `[` |
+| `seq-close:`| (unset)    | Token closing a sequence, e.g. `]` |
+| `key-sep:`  | `:`        | Token between a key and its value |
+| `entry-sep:`| (newline)  | Token between entries, e.g. `,` |
+| `seq-item:` | `- `       | Marker prefixing each sequence item in indent mode |
+| `quote:`    | `"`        | String quote character |
+| `quote2:`   | (unset)    | Alternate string quote character, e.g. `'` |
+| `escape:`   | `\`        | Escape character inside quoted strings |
+| `bare:`     | `strings`  | `strings`: bare scalars allowed. `none`: a bare scalar that isn't a number/`true`/`false`/`null` is an error |
+| `indent:`   | `2`        | Advisory indent width for writers |
+| `dict:`     | —          | Key dictionary: `alias=real` pairs, space-separated |
+| `rep:`      | —          | Repeated-string avoidance: `token=expansion` pairs, space-separated |
+| `keys:`     | —          | Positional key order: every body line is a `sep`-separated row of bare values |
+| `sep:`      | `\|`       | Field separator for `keys:` rows |
 
-## 4. `lang: dog` — native minimal syntax
+### Grammar
 
-### Scalars
+- **Delimiter mode** — a construct whose open token is set: the open/close
+  tokens bound it, entries are separated by `entry-sep` (a trailing
+  separator is an error), and whitespace — including newlines — around
+  structural tokens is insignificant.
+- **Indent mode** — open token unset: entries are newline-delimited, nesting
+  is by deeper indentation (readers accept any consistent deeper indent;
+  tabs are forbidden; mixed levels are an error), and sequence items are
+  prefixed with the `seq-item` marker.
+- Each construct follows its own setting: braced maps containing
+  indent-mode sequences (or vice versa) in one document is legal.
+- A map entry is `key key-sep value`. Keys are quoted strings or bare
+  tokens (per `bare:`); `dict:` aliases expand them. A value is a quoted
+  string, a bare scalar, a nested map/sequence, or a block scalar: `|`
+  consumes the following deeper-indented lines as one literal string,
+  newlines preserved, no trailing newline added.
+- Quoted strings use `quote:` or `quote2:`. `escape:` introduces the
+  standard escapes — `\"` `\'` `\\` `\n` `\t` `\r` `\b` `\f` `\/`
+  `\uXXXX` — processed identically under both quote characters.
+- Bare scalars: JSON number grammar, `true`, `false`, `null`. Anything else
+  is a string iff `bare: strings`, otherwise a document error.
+- `dict:` expands **keys**, `rep:` expands **string scalar values and
+  keys** — longest token first, exactly once, never recursively (R1.1) — in
+  every configuration, not just native. A backslash escapes the next
+  character: `\~` is a literal `~` even when `~` is a rep token; `\\` is a
+  literal backslash. Escaped characters are hidden from substitution.
+- `keys:` declares the row layout: every body line is a row, `sep`-separated
+  fields mapped positionally to the declared keys. It is only valid when
+  `entry-sep` is newline; declaring it with an explicit `entry-sep` is a
+  document error. Empty field → null. Field count must match exactly. Rows
+  must not be indented.
 
-`42`, `3.14`, `-7`, `true`, `false`, `null` behave like JSON. Anything else
-is a string. Quote with `"` when a value needs to survive literally
-(leading/trailing spaces, a value that looks like a number, etc.).
-`""` is the empty string; a bare empty value means null (see maps).
+### Expansion order
 
-### Maps
+1. `dict:` expands keys (map keys and `keys:` row headers). Unknown aliases
+   are kept as-is.
+2. `rep:` expands scalar values and keys, longest token first.
+3. `rep:` pairs split on whitespace, so an expansion cannot contain a
+   literal space in v2 — use `%20` or choose tokens accordingly.
 
-```dog
-name: Ava Reyes
-age: 29
-admin: true
+## 3. Configurations: JSON and YAML are parameter bundles
+
+**JSON.** The body is byte-identical JSON — any JSON file becomes .dog by
+prepending this header and changing zero body bytes:
+
+```
+.dog/2.0
+map-open: {
+map-close: }
+seq-open: [
+seq-close: ]
+key-sep: :
+entry-sep: ,
+bare: none
 ```
 
-`key: value`, one per line. Keys are single tokens (no whitespace); the value
-runs to end of line and may contain colons (`url: https://x` is fine —
-split on the *first* colon). A bare scalar line inside a map is an error;
-ambiguity is not a feature.
+**YAML** (block subset: mappings, sequences, nesting, plain/quoted
+scalars). Indent mode is the default, so no open tokens are needed:
 
-Nesting is by indentation:
-
-```dog
-server:
-  host: castle
-  ports:
-    http: 80
+```
+.dog/2.0
+seq-item: -
+key-sep: :
+bare: strings
 ```
 
-`key:` with nothing after it takes the deeper-indented block as its value,
-or null if nothing follows. Duplicate keys: last wins.
+Anchors, flow styles, and tags are out of scope for v2.
 
-### Sequences
+**Native .dog.** The header is just the magic line: indent mode, `- `
+items, `:` key separator, bare strings allowed — plus `dict:`/`rep:`/
+`keys:` where the bytes matter.
 
-```dog
-- Ava
-- Ben
-- name: Cy
-  age: 41
-```
+Syntax is configurable; the data model and type discipline are invariant
+across every configuration: a bare `NO` is the string `"NO"` in ALL of
+them (R2.1 — YAML's Norway problem stays dead even in YAML syntax),
+parsing never executes code or fetches resources (R1.3), and the R1.2
+bounds (depth, dictionary size, expansion ratio, output size) are always
+enforced.
 
-`- ` starts an item: a scalar, or `key: value` beginning a map whose
-continuation lines sit deeper-indented. `- key:` (empty) takes the deeper
-block as that key's value, the YAML rule.
+## 4. Three configurations, one value
 
-### Block scalars
-
-```dog
-note: |
-  Runs behind the modem.
-  No cookies. No banners.
-```
-
-`| ` consumes the following deeper-indented lines as one literal string,
-newlines preserved, no trailing newline added. Relative indentation inside
-the block is kept.
-
-### Positional rows (`keys:`)
-
-```dog
-.dog/1.0
-lang: dog
-dict: n=name a=age
-rep: ~=@example.com
-keys: n a
-sep: |
-
-Ava|29
-Ben|~41
-```
-
-When `keys:` is declared, **every** body line is a row: `sep`-separated
-fields mapped positionally to the declared keys. Empty field → null.
-Field count must match the key count exactly, or the document is invalid.
-Rows must not be indented. This is where the byte savings live: the key
-names are declared once instead of repeated on every row.
+`examples/user.dog` (native), `examples/user-json.dog` (JSON bundle), and
+`examples/user-yaml.dog` (YAML bundle) carry identical data. A conforming
+parser MUST produce the identical JSON-equivalent value for all three.
 
 ## 5. Data model
 
-Every .dog document denotes exactly one JSON-equivalent value. Native `dog`
-bodies map to JSON as: maps → objects, sequences → arrays, scalars per
-§4, rows → arrays of objects. A conforming parser MUST round-trip:
-`parse(native_dog)` ≡ `parse(equivalent_json)`.
+Every .dog document denotes exactly one JSON-equivalent value (object,
+array, string, number, boolean, or null). Maps → objects, sequences →
+arrays, scalars per §2, rows → arrays of objects. A conforming parser MUST
+round-trip: `parse(dog)` ≡ `parse(equivalent_json)`.
 
 ## 6. Errors
 
 A conforming reader reports, at minimum: missing magic line, malformed
-directive, unknown `lang:`, bad indentation (tabs are forbidden; mixed
-levels are an error), bare scalar inside a map, row field-count mismatch,
-and malformed `json`/`xml` bodies. It MUST NOT silently reinterpret.
+directive, bad indentation (tabs forbidden, mixed levels are an error),
+bare scalar inside a map in indent mode, `bare: none` violation, row
+field-count mismatch, `keys:` with an explicit `entry-sep`, and malformed
+bodies. It MUST NOT silently reinterpret.
 
-## 7. Versioning
+## 7. Versioning and migration
 
-This is DOG/1, magic `.dog/1.0`. Future versions bump the magic
-(`.dog/2.0`). Unknown directives are ignored (see §2), so additive header
-tools never break v1 readers.
+This is DOG/2, magic `.dog/2.0`. DOG/1 (`lang:`-based) files are **not**
+valid DOG/2: `lang:` is an unknown directive and is ignored, so a v1 body
+would be parsed as native .dog and fail. Migration is mechanical:
+
+- `lang: json` → the 7-line JSON bundle (§3)
+- `lang: yaml` → the 3-line YAML bundle (§3)
+- `lang: dog`  → delete the line
+- `lang: xml`  → no bundle exists. XML is not expressible as delimiter
+  parameters (attributes, the `@attr`/`#text` mapping, and
+  repeated-sibling→array are data-model mappings, not syntax). **Open
+  question for the founder:** drop XML from the spec, or keep it as a
+  documented body mapping outside the parameter system. Recommendation:
+  drop it — R3.2, no sprawl.
+
+Unknown directives are ignored, so additive header tools never break v2
+readers. A future breaking change bumps the magic (`.dog/3.0`).

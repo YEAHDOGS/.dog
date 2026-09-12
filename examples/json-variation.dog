@@ -1,5 +1,11 @@
-.dog/1.0
-lang: json
+.dog/2.0
+map-open: {
+map-close: }
+seq-open: [
+seq-close: ]
+key-sep: :
+entry-sep: ,
+bare: none
 
 [
   {

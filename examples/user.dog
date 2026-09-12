@@ -1,0 +1,11 @@
+.dog/2.0
+
+name: Ava Reyes
+age: 29
+admin: true
+tags:
+  - early
+  - vinyl
+address:
+  city: Tulsa
+  zip: 74103

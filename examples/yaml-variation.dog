@@ -1,5 +1,7 @@
-.dog/1.0
-lang: yaml
+.dog/2.0
+seq-item: -
+key-sep: :
+bare: strings
 
 - name: Ava Reyes
   email: ava.reyes@example.com

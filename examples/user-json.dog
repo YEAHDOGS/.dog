@@ -1,0 +1,10 @@
+.dog/2.0
+map-open: {
+map-close: }
+seq-open: [
+seq-close: ]
+key-sep: :
+entry-sep: ,
+bare: none
+
+{"name": "Ava Reyes", "age": 29, "admin": true, "tags": ["early", "vinyl"], "address": {"city": "Tulsa", "zip": 74103}}

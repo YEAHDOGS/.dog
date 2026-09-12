@@ -1,41 +1,55 @@
 # .dog — the minimal text data format
 
-`.dog` is plain text for data. A tiny **header** carries encoding tools
-(key dictionaries, repeated-string avoidance, positional rows); the body is
-your data. Two promises:
+`.dog` is plain text for data. A tiny **header** declares the syntax —
+every brace, quote, hyphen, and separator is a header parameter — and the
+body is your data. Two promises:
 
-1. **Any JSON file becomes valid .dog by adding the header.** Zero body changes.
+1. **JSON is just .dog with different settings.** No `lang:` shortcut, no
+   special cases: the header parameters alone make any JSON file valid .dog.
+   Same for YAML.
 2. **Native .dog cuts the bytes dramatically** — smaller than minified JSON,
    while staying human-readable.
 
 ## Demo 1: JSON in, .dog out, body untouched
 
-`examples/minimal.json` is ordinary pretty-printed JSON. `examples/json-variation.dog`
-is that exact file with a 3-line header:
+`examples/minimal.json` is ordinary pretty-printed JSON.
+`examples/user-json.dog` shows the trick on a small record — the body is
+byte-identical JSON, the 7-line header is the entire format declaration:
 
 ```
-.dog/1.0
-lang: json
+.dog/2.0
+map-open: {
+map-close: }
+seq-open: [
+seq-close: ]
+key-sep: :
+entry-sep: ,
+bare: none
 
-[{"active":true,"email":"ava.reyes@example.com", ... }]
+{"name": "Ava Reyes", "age": 29, ...}
 ```
 
 Proof the body is byte-identical:
 
 ```sh
-diff <(sed -n '4,$p' examples/json-variation.dog) examples/minimal.json && echo IDENTICAL
+sed -n '10,$p' examples/user-json.dog | python3 -c "import json,sys; json.load(sys.stdin); print('VALID JSON')"
 ```
 
-`lang: json` (or `xml`, `yaml`) means: the body is raw JSON, untouched —
-the header alone makes it .dog.
+## Demo 2: the same data, three syntaxes, one value
 
-## Demo 2: the byte counts
+`examples/user.dog` (native), `examples/user-json.dog` (JSON bundle), and
+`examples/user-yaml.dog` (YAML bundle) carry identical data. A conforming
+parser MUST produce the identical value for all three — syntax is
+configurable, semantics are not. (YAML's syntax, without YAML's
+Norway-problem implicit typing: a bare `NO` is the string `"NO"` in every
+configuration.)
 
-The same data, rewritten in native `lang: dog` with the header tools:
+## Demo 3: the byte counts
+
+The same data, rewritten in native .dog with the header tools:
 
 ```
-.dog/1.0
-lang: dog
+.dog/2.0
 dict: n=name e=email r=role a=active
 rep: ~=@example.com
 keys: n e r a
@@ -65,19 +79,19 @@ is the compression dictionary, in plain sight.
 
 ## The reference tool
 
-`dog.py` — zero dependencies, stdlib only. Parses all four body languages
-plus `dict:`/`rep:`/`keys:` expansion, and emits equivalent JSON:
+`dog.py` — zero dependencies, stdlib only. Parses native .dog plus
+`dict:`/`rep:`/`keys:` expansion, and emits equivalent JSON. (v2 ports of
+the 6-language parser fleet are queued — see BAGLOG.)
 
 ```sh
 python3 dog.py examples/minimal.dog
-python3 dog.py examples/xml-variation.dog
 python3 test_dog.py   # 16 tests: round-trips, expansions, errors, byte savings
 ```
 
 ## Layout
 
 ```
-SPEC.md            the format specification (DOG/1)
+SPEC.md            the format specification (DOG/2)
 README.md          this file
 dog.py             reference parser (JSON out)
 dog.js             JS parser, node + browser (zero-dep)
@@ -95,10 +109,10 @@ test_dog.py        test suite
 examples/
   minimal.json        sample data as pretty JSON (692 bytes)
   minimal.dog         same data, native dog (391 bytes)
-  json-variation.dog  same JSON with only a header added
-  xml-variation.dog   same data as XML
-  yaml-variation.dog  same data as YAML
-  nested.dog          nesting, lists, block scalars, rep in action
+  user.dog            the same record, native .dog config (DOG/2)
+  user-json.dog       the same record, JSON bundle config — body is byte-identical JSON
+  user-yaml.dog       the same record, YAML bundle config
+  nested.dog          nesting, lists, block scalars, rep in action (DOG/1 — needs migration)
 ```
 
 Spec: [SPEC.md](SPEC.md).
